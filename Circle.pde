@@ -23,7 +23,7 @@ class Circle {
   }
 
   boolean toBig() {
-    boolean res =  x + r > width - 2|| x - r < 2 || y + r > height - 2 || y - r < 2;
+    boolean res =  x + r > graphics.width - 2|| x - r < 2 || y + r > graphics.height - 2 || y - r < 2;
     growing = !res && growing;
     return res;
   }
@@ -42,10 +42,11 @@ class Circle {
 
   void display() {
     //noFill();
-    fill(hue, sat, bright);
-    stroke(hue, sat, bright);
-    strokeWeight(2);
-    ellipse(x, y, r*2, r*2);
+    graphics.fill(hue, sat, bright);
+    //graphics.strokeWeight(2);
+    //graphics.stroke(hue, sat, bright);
+    graphics.noStroke();
+    graphics.ellipse(x, y, r*2, r*2);
   }
 
   void setColor() {
@@ -56,7 +57,7 @@ class Circle {
       int numPixels = 0;
       for (int x = int(this.x - r); x < this.x + r; x++) {
         for (int y = int(this.y - r); y < this.y + r; y ++) {
-          if (x > 0 && x < width && y > 0 && y < height && dist(x, y, this.x, this.y) < r) {
+          if (x > 0 && x < graphics.width && y > 0 && y < graphics.height && dist(x, y, this.x, this.y) < r) {
             color col = img.pixels[x + y * img.width];
             hueSum += hue(col);
             satSum += saturation(col);
