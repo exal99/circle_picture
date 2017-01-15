@@ -22,6 +22,7 @@ Textarea consoleText;
 
 int spawnCount;
 int tryCount;
+float imgScale;
 int colorMode;
 
 static final int MEAN_COLOR = 0;
@@ -33,13 +34,13 @@ boolean v;
 String textToSet;
 
 String keyBindInfoText = 
-"\t---OPTIONS BINDINGS---\n\n" + 
-"c\t-\tClears the error messages" + 
-"\n\n\n\n" + 
-"\t---DISPLAY BINDINGS---\n\n" + 
-"b\t-\tReturns back to the options screen\n\t\t(IMPORTANT: THIS WILL DELEATE ANY PROGRESS\n\t\tMADE WITHOUT CONFERMATION!)\n\n" + 
-"f\t-\tFinishes the current picture, i.e. stops creating new\n\t\tcircles, and saves the picture\n\n" +
-"r\t-\tResets the progress and starts over again\n\t\t(IMPORTANT: THIS WILL DELEATE ANY PROGRESS\n\t\tMADE WITHOUT CONFERMATION!)";
+  "\t---OPTIONS BINDINGS---\n\n" + 
+  "c\t-\tClears the error messages" + 
+  "\n\n\n\n" + 
+  "\t---DISPLAY BINDINGS---\n\n" + 
+  "b\t-\tReturns back to the options screen\n\t\t(IMPORTANT: THIS WILL DELEATE ANY PROGRESS\n\t\tMADE WITHOUT CONFERMATION!)\n\n" + 
+  "f\t-\tFinishes the current picture, i.e. stops creating new\n\t\tcircles, and saves the picture\n\n" +
+  "r\t-\tResets the progress and starts over again\n\t\t(IMPORTANT: THIS WILL DELEATE ANY PROGRESS\n\t\tMADE WITHOUT CONFERMATION!)";
 
 enum Screen {
   OPTIONS, DISPLAY
@@ -76,7 +77,7 @@ void setup() {
 
   console = consoleControls.addConsole(consoleText);
   textToSet = "";
-  
+
   smooth();
 }
 
@@ -211,7 +212,7 @@ void keyPressed() {
     if (key == 'c') {
       console.clear();
     }
-    
+
     if (keyCode == CONTROL) {
       ctrl = true;
     }
@@ -221,12 +222,10 @@ void keyPressed() {
     if (ctrl && v && settingsControls.get(Textfield.class, "filePath").isFocus()) {
       ctrl = false;
       v = false;
-      println("pasting");
       textToSet = settingsControls.get(Textfield.class, "filePath").getText() + GClip.paste();
       //settingsControls.get(Textfield.class, "filePath").setText(GClip.paste());
     }
     break;
-    
   }
 }
 
@@ -244,6 +243,7 @@ void startDisplay(String fileName) {
   img = loadImage(fileName);
   if (img != null && spawnCount < tryCount) {
     console.clear();
+    img.resize(round(img.width * imgScale), round(img.height * imgScale));
     img.loadPixels();
     graphics = createGraphics(img.width, img.height);
     graphics.smooth();
@@ -275,10 +275,9 @@ void createOptionsInterface() {
   t.setText("img.jpg");
   t.setWidth(400);
   t.getValueLabel().setMultiline(false);
-  println(t.getValueLabel().getWidth(), t.getValueLabel().isFixedSize());
   t.setPosition(width/2 - t.getWidth()/2, height/2 - t.getHeight()/2 - 40);
   t.getCaptionLabel().setText("Image File Path");
-  
+
   Textfield s = settingsControls.addTextfield("savePath");
   s.setText("out.jpg");
   s.setWidth(400);
@@ -313,12 +312,6 @@ void createOptionsInterface() {
     tog.getCaptionLabel().getStyle().setMarginTop(-(rb.getHeight() * 2)).setMarginLeft(-60);
   }
 
-  //CheckBox cb = settingsControls.addCheckBox("options");
-  //cb.addItem("Mean Color", 0);
-  //cb.setSize(20, 20);
-  //cb.activate("Mean Color");
-  //cb.setPosition(width/2 - t.getWidth()/2, t.getPosition()[1] - 50);
-
   Slider spawn = settingsControls.addSlider("spawnCount");
   spawn.setCaptionLabel("Circles Generated Per Frame (Lower = Better Preformance)");
   spawn.setWidth(300);
@@ -334,17 +327,25 @@ void createOptionsInterface() {
   tryes.setRange(50, 2000);
   tryes.setValue(1000);
   tryes.setPosition(width/2 - t.getWidth()/2, t.getPosition()[1] + tryes.getHeight() + 130);
+  
+  Slider scale = settingsControls.addSlider("imgScale");
+  scale.setCaptionLabel("Image Scale");
+  scale.setWidth(300);
+  scale.setHeight(20);
+  scale.setRange(0.25, 2);
+  scale.setValue(1);
+  scale.setPosition(width/2 - t.getWidth()/2, t.getPosition()[1] + tryes.getHeight() + 180);
 
   Textarea keyBindInfo = settingsControls.addTextarea("info");
   keyBindInfo.setSize(500 - t.getWidth()/2 + 30, 400);
   keyBindInfo.setPosition((width/2 - keyBindInfo.getWidth())/2 - 75, 300);
   keyBindInfo.setText(parseTabs(keyBindInfoText));
-  
+
   Button loadFile = settingsControls.addButton("loadFile");
   loadFile.setSize(100, t.getHeight());
   loadFile.setPosition(width/2 + t.getWidth()/2 + 60, t.getPosition()[1]);
   loadFile.setCaptionLabel("Select Image File");
-  
+
   Button saveFile = settingsControls.addButton("_saveFile");
   saveFile.setSize(100, s.getHeight());
   saveFile.setPosition(width/2 + s.getWidth()/2 + 60, s.getPosition()[1]);
@@ -354,7 +355,6 @@ void createOptionsInterface() {
 void loadFile(int event) {
   if (event == 1) {
     selectInput("Select input image", "fileLoaded");
-    
   }
 }
 void fileLoaded(File selected) {
@@ -382,9 +382,8 @@ String parseTabs(String msg) {
   for (int line = 0; line < lines.length; line++) {
     StringBuilder sb = new StringBuilder();
     for (int c = 0; c < lines[line].length(); c++) {
-      //println(line, c);
       if (lines[line].charAt(c) == '\t') {
-        
+
         int spaceToAppend = tabSize - (sb.length()) % tabSize;
         for (int i = 0; i < spaceToAppend; i++) {
           sb.append(" ");
