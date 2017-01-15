@@ -94,7 +94,7 @@ class Circle {
         hue = median(hueValues);
         sat = median(satValues);
         bright = median(brightValues);
-        
+
         break;
       case circle_picture.CENTER_COLOR:
         color col = img.pixels[int(x) + int(y) * img.width];
@@ -105,7 +105,7 @@ class Circle {
       }
     }
   }
-  
+
   private <E extends Number> float median(ArrayList<E> values) {
     return (values.size() % 2 == 0) ? (values.get(values.size()/2).floatValue() + (values.get(values.size()/2 - 1)).floatValue())/ 2 : values.get(values.size() / 2).floatValue();
   }
