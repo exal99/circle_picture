@@ -1,5 +1,7 @@
 import controlP5.*;
 import java.awt.event.KeyEvent;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 ArrayList<Circle> updatingCircles;
 ArrayList<Circle> colitionCircles;
@@ -20,10 +22,15 @@ Textarea consoleText;
 
 int spawnCount;
 int tryCount;
-boolean meanColor;
+int colorMode;
+
+static final int MEAN_COLOR = 0;
+static final int CENTER_COLOR = 1;
+static final int MEDIAN_COLOR = 2;
 
 boolean ctrl;
 boolean v;
+String textToSet;
 
 String keyBindInfoText = 
 "\t---OPTIONS BINDINGS---\n\n" + 
@@ -42,6 +49,7 @@ Screen window;
 void setup() {
   //parseTabs("---OPTIONS BINDINGS---\nc\t-\tclears the error messages\n\n---DISPLAY BINDINGS---\nb\t-\treturns back to the options screen");
   size(1200, 800);
+  surface.setResizable(true);
   colorMode(HSB);
   background(0, 0, 0);
   frameRate(60);
@@ -67,6 +75,7 @@ void setup() {
   consoleText.setFont(new ControlFont(createFont("Arial", 30, true)));
 
   console = consoleControls.addConsole(consoleText);
+  textToSet = "";
   
   smooth();
 }
@@ -121,7 +130,7 @@ void draw () {
       }
 
       if (doneGrowing && doneCreating && !saved) {
-        graphics.save("out.png");
+        graphics.save(settingsControls.get(Textfield.class, "savePath").getText());
         println("DONE");
         saved = true;
       }
@@ -133,7 +142,10 @@ void draw () {
   case OPTIONS:
     background(0);
     settingsControls.draw();
-
+    if (textToSet != "") {
+      settingsControls.get(Textfield.class, "filePath").setText(textToSet);
+      textToSet = "";
+    }
     break;
   }
   console.play();
@@ -191,6 +203,7 @@ void keyPressed() {
   case OPTIONS:
     if (key == ENTER && settingsControls.get(Textfield.class, "filePath").isFocus()) {
       String path = settingsControls.get(Textfield.class, "filePath").getText();
+      textToSet = path;
       if (path != "") {
         startDisplay(path);
       }
@@ -209,7 +222,8 @@ void keyPressed() {
       ctrl = false;
       v = false;
       println("pasting");
-      settingsControls.get(Textfield.class, "filePath").setText(GClip.paste());
+      textToSet = settingsControls.get(Textfield.class, "filePath").getText() + GClip.paste();
+      //settingsControls.get(Textfield.class, "filePath").setText(GClip.paste());
     }
     break;
     
@@ -237,12 +251,20 @@ void startDisplay(String fileName) {
     colitionCircles = new ArrayList<Circle>();
     doneCreating = false;
     doneGrowing = false;
-    meanColor = settingsControls.get(CheckBox.class, "options").getState("Mean Color");
+    //meanColor = settingsControls.get(CheckBox.class, "options").getState("Mean Color");
     window = Screen.DISPLAY;
     saved = false;
     consoleText.setColor(color(85, 255, 255));
+    for (int i = 0; i < settingsControls.get(RadioButton.class, "options").getItems().size(); i ++) {
+      if (settingsControls.get(RadioButton.class, "options").getState(i)) {
+        colorMode = i;
+        break;
+      }
+    }
+    //settingsControls.get(Textfield.class, "filePath").clear();
+    //settingsControls.get(Textfield.class, "filePath").setText(fileName);
   } else if (img == null) {
-    println("INVALID FILE PATH");
+    println("INVALID FILE PATH: \"" + fileName + "\"");
   } else if (spawnCount > tryCount) {
     println("Need to have more tryes than circles created");
   }
@@ -253,8 +275,16 @@ void createOptionsInterface() {
   t.setText("img.jpg");
   t.setWidth(400);
   t.getValueLabel().setMultiline(false);
-  println(t.getValueLabel().getWidth());
-  t.setPosition(width/2 - t.getWidth()/2, height/2 - t.getHeight()/2);
+  println(t.getValueLabel().getWidth(), t.getValueLabel().isFixedSize());
+  t.setPosition(width/2 - t.getWidth()/2, height/2 - t.getHeight()/2 - 40);
+  t.getCaptionLabel().setText("Image File Path");
+  
+  Textfield s = settingsControls.addTextfield("savePath");
+  s.setText("out.jpg");
+  s.setWidth(400);
+  s.getValueLabel().setMultiline(false);
+  s.setPosition(width/2 - t.getWidth()/2, t.getPosition()[1] + t.getHeight() + 30);
+  s.getCaptionLabel().setText("Output Image Save Path");
 
   Button b = settingsControls.addButton("start");
   b.setWidth(200);
@@ -271,12 +301,23 @@ void createOptionsInterface() {
     }
   }
   );
+  RadioButton rb = settingsControls.addRadioButton("options");
+  rb.addItem("Mean Color", 1);
+  rb.addItem("Center Color", 10);
+  rb.addItem("Median Color", 20);
+  rb.activate("Mean Color");
+  rb.setSize(60, 20);
+  rb.setItemsPerRow(10);
+  rb.setPosition(width/2 - t.getWidth()/2, t.getPosition()[1] - 50);
+  for (Toggle tog : rb.getItems()) {
+    tog.getCaptionLabel().getStyle().setMarginTop(-(rb.getHeight() * 2)).setMarginLeft(-60);
+  }
 
-  CheckBox cb = settingsControls.addCheckBox("options");
-  cb.addItem("Mean Color", 0);
-  cb.setSize(20, 20);
-  cb.activate("Mean Color");
-  cb.setPosition(width/2 - t.getWidth()/2, height/2 - cb.getHeight()/2 - 60);
+  //CheckBox cb = settingsControls.addCheckBox("options");
+  //cb.addItem("Mean Color", 0);
+  //cb.setSize(20, 20);
+  //cb.activate("Mean Color");
+  //cb.setPosition(width/2 - t.getWidth()/2, t.getPosition()[1] - 50);
 
   Slider spawn = settingsControls.addSlider("spawnCount");
   spawn.setCaptionLabel("Circles Generated Per Frame (Lower = Better Preformance)");
@@ -284,7 +325,7 @@ void createOptionsInterface() {
   spawn.setHeight(20);
   spawn.setRange(1, 200);
   spawn.setValue(100);
-  spawn.setPosition(width/2 - t.getWidth()/2, height/2 - spawn.getHeight()/2 + 60);
+  spawn.setPosition(width/2 - t.getWidth()/2, t.getPosition()[1] + spawn.getHeight() + 80);
 
   Slider tryes = settingsControls.addSlider("tryCount");
   tryes.setCaptionLabel("Tryes Before Finnishing (Lower = Better Preformance)");
@@ -292,12 +333,46 @@ void createOptionsInterface() {
   tryes.setHeight(20);
   tryes.setRange(50, 2000);
   tryes.setValue(1000);
-  tryes.setPosition(width/2 - t.getWidth()/2, height/2 - tryes.getHeight()/2 + 120);
+  tryes.setPosition(width/2 - t.getWidth()/2, t.getPosition()[1] + tryes.getHeight() + 130);
 
   Textarea keyBindInfo = settingsControls.addTextarea("info");
   keyBindInfo.setSize(500 - t.getWidth()/2 + 30, 400);
   keyBindInfo.setPosition((width/2 - keyBindInfo.getWidth())/2 - 75, 300);
   keyBindInfo.setText(parseTabs(keyBindInfoText));
+  
+  Button loadFile = settingsControls.addButton("loadFile");
+  loadFile.setSize(100, t.getHeight());
+  loadFile.setPosition(width/2 + t.getWidth()/2 + 60, t.getPosition()[1]);
+  loadFile.setCaptionLabel("Select Image File");
+  
+  Button saveFile = settingsControls.addButton("_saveFile");
+  saveFile.setSize(100, s.getHeight());
+  saveFile.setPosition(width/2 + s.getWidth()/2 + 60, s.getPosition()[1]);
+  saveFile.setCaptionLabel("Select Output File");
+}
+
+void loadFile(int event) {
+  if (event == 1) {
+    selectInput("Select input image", "fileLoaded");
+    
+  }
+}
+void fileLoaded(File selected) {
+  if (selected != null) {
+    settingsControls.get(Textfield.class, "filePath").setText(selected.getPath());
+  }
+}
+
+void _saveFile(int event) {
+  if (event == 1) {
+    selectOutput("Select save location", "fileSaved");
+  }
+}
+
+void fileSaved(File selected) {
+  if (selected != null) {
+    settingsControls.get(Textfield.class, "savePath").setText(selected.getPath());
+  }
 }
 
 String parseTabs(String msg) {
